@@ -4,7 +4,7 @@
 
 ## Task 1: Install the tools
 
-##### 1. Explain how the load balancer behaves when you open and refresh the URL http://192.168.42.42 in your browser. Add screenshots to complement your explanations. We expect that you take a deeper a look at session management.
+#### 1. Explain how the load balancer behaves when you open and refresh the URL http://192.168.42.42 in your browser. Add screenshots to complement your explanations. We expect that you take a deeper a look at session management.
 
 The load balancer uses a `Round Robin` algorithm. Which means that each time a request is made, the reverse proxy will transmit the request to a different server.
 
@@ -20,17 +20,17 @@ If we take a look at the request made by the client makes, we will see that it t
 | ---------------------------------- | ----------------------------------- |
 | ![](doc/task1_request_cookies.png) | ![](doc/task1_response_cookies.png) |
 
-##### 2. Explain what should be the correct behavior of the load balancer for session management.
+#### 2. Explain what should be the correct behavior of the load balancer for session management.
 
 The correct behavior would be that the load balancer always sends the request **with** a `NODESESSID` to the correct server. Such behavior is called `Sticky sessions`.
 
 > Note: If it's the first time a client contacts the web app, the reverse proxy can route the request to any server!
 
-##### 3. Provide a sequence diagram to explain what is happening when one requests the URL for the first time and then refreshes the page. We want to see what is happening with the cookie. We want to see the sequence of messages exchanged (1) between the browser and HAProxy and (2) between HAProxy and the nodes S1 and S2. Here is an example:
+#### 3. Provide a sequence diagram to explain what is happening when one requests the URL for the first time and then refreshes the page. We want to see what is happening with the cookie. We want to see the sequence of messages exchanged (1) between the browser and HAProxy and (2) between HAProxy and the nodes S1 and S2. Here is an example:
 
 
 
-##### 4. Provide a screenshot of the summary report from JMeter.
+#### 4. Provide a screenshot of the summary report from JMeter.
 
 ## Task 2: Sticky sessions
 
