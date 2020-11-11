@@ -22,6 +22,10 @@ If we take a look at the request made by the client makes, we will see that it t
 
 ##### 2. Explain what should be the correct behavior of the load balancer for session management.
 
+The correct behavior would be that the load balancer always sends the request **with** a `NODESESSID` to the correct server. Such behavior is called `Sticky sessions`.
+
+> Note: If it's the first time a client contacts the web app, the reverse proxy can route the request to any server!
+
 ##### 3. Provide a sequence diagram to explain what is happening when one requests the URL for the first time and then refreshes the page. We want to see what is happening with the cookie. We want to see the sequence of messages exchanged (1) between the browser and HAProxy and (2) between HAProxy and the nodes S1 and S2. Here is an example:
 
 
