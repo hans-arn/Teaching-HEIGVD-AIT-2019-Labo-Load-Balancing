@@ -31,10 +31,74 @@ If we take a look at the request made by the client makes, we will see that it t
 ## Task 2: Sticky sessions
 
 1. There is different way to implement the sticky session. One possibility  is to use the SERVERID provided by HAProxy. Another way is to use the  NODESESSID provided by the application. Briefly explain the difference  between both approaches (provide a sequence diagram with cookies to show the difference).
+
+   ```sequence
+   Browser->>ha: Normal Request
+   ha->>S1/S2: Normal Request forward to server \n with round robin
+   S1/S2->>ha: S1/S2 add NODESESSID 
+   ha->>Browser: cookie NODESESSID \n ha add ServerID cookie
+   
+   ```
+
+   Dans le projet de base le NODESESSID est activé mais le load balancing ne fonctionne pas. Cela peut être expliqué car le NODESESSID sert juste à l'application à stocker des informations et à être statefull. Mais il n'indique pas à ha proxy vers quelle machine diriger la requête. 
+
+   SERVERID sert à Ha proxy à savoir vers quelle serveur envoyer la requête. Si il n y a pas de cookie, dans le cas de notre labo, il choisira avec la méthode round robin.
+
+   
+
 2. Provide the modified `haproxy.cfg` file with a short explanation of the modifications you did to enable sticky session management.
+
+   ```sh
+   backend nodes
+       mode http
+       option httpchk HEAD /
+       balance roundrobin
+       # indique que nous allons utiliser les cookies serverID sans cache l'option indirect indique que si le client a déjà 	un cookie le server n'en remet pas un 
+       cookie SERVERID insert indirect nocache
+   
+       option forwardfor
+       http-request set-header X-Forwarded-Port %[dst_port]
+   
+   	# Set les différents noeuds vers lesquels envoyés les requêtes avec validation des cookies pour chacun des noeuds 		respectifs
+       server s1 ${WEBAPP_1_IP}:3000 check cookie s1
+       server s2 ${WEBAPP_2_IP}:3000 check cookie s2
+   ```
+
 3. Explain what is the behavior when you open and refresh the URL http://192.168.42.42 in your browser. Add screenshots to complement your explanations. We expect that you take a deeper a look at session management.
+
+   Quand on arrive sur le navigateur sans avoir de cookie, on est sur le serveur 2. si on refresh, on reste sur le même serveur car on a un cookie. Si on efface les cookies, on passe sur le serveur 1. 
+
+   ![](doc/task2_ref.png)
+
 4. Provide a sequence diagram to explain what is happening when one requests the URL for the first time and then refreshes the page. We want to see what is happening with the cookie. We want to see the sequence of messages exchanged (1) between the browser and HAProxy and (2) between HAProxy and the nodes S1 and S2. We also want to see what is happening when a second browser is used.
+
+   Request for the first time :
+
+   ```sequence
+   192.168.42.1->>192.168.42.42: GET / HTTP/1.1
+   192.168.42.42->>192.168.42.22: GET / HTTP/1.1
+   192.168.42.22->>192.168.42.42: Set-cookie NODESESSID\n with payload
+   192.168.42.42->>192.168.42.1: Set-cookie NODESESSID,\n Set-cookie SERVERID\n with payload
+   ```
+
+   Request when refresh:
+
+   ```sequence
+   192.168.42.1->>192.168.42.42: GET / HTTP/1.1 Cookie: NODESESSID and SERVERID
+   192.168.42.42->>192.168.42.22: GET / HTTP/1.1 Cookie: NODESESSID
+   192.168.42.22->>192.168.42.42: payload JSON
+   192.168.42.42->>192.168.42.1: payload JSON
+   ```
+
+   New Browser:
+
+   The first tests were made with firefox. if we do the same test with google chrome we can see that we are in the first case with the same exchange. 
+
 5. Provide a screenshot of JMeter's summary report. Is there a difference with this run and the run of Task 1?
+
+   No because only one node has been choosen with the cookie. 
+
+   ![](doc/task2_5a.png)
 
 - Clear the results in JMeter.
 - Now, update the JMeter script. Go in the HTTP Cookie Manager and ~~uncheck~~verify that the box `Clear cookies each iteration?` is unchecked.
@@ -42,15 +106,48 @@ If we take a look at the request made by the client makes, we will see that it t
 
 7. Provide a screenshot of JMeter's summary report. Give a short explanation of what the load balancer is doing.
 
+   ![](doc/task2_7.png)
+
+   With the first thread the load balancer send it to S1 and the second thread with the round robin method goes on S2. After that, every thread has a cookie. 
+
 ## Task 3: Drain mode
 
 1. Take a screenshot of the Step 5 and tell us which node is answering.
+
+   For screenshot see Step 5. S2 has answered to the request.
+
 2. Based on your previous answer, set the node in DRAIN mode. Take a screenshot of the HAProxy state page.
+
+   ```
+   # to enable HAProxy state page in frontend part 
+       bind *:8404
+       stats enable
+       stats uri /stats
+       stats refresh 10s
+       stats admin if LOCALHOST
+   ```
+
+   ![](doc/task3_2.png)
+
 3. Refresh your browser and explain what is happening. Tell us if you stay on the same node or not. If yes, why? If no, why?
+
+   
+
 4. Open another browser and open `http://192.168.42.42`. What is happening?
+
+   
+
 5. Clear the cookies on the new browser and repeat these two steps multiple times. What is happening? Are you reaching the node in DRAIN mode?
+
+   
+
 6. Reset the node in READY mode. Repeat the three previous steps and explain what is happening. Provide a screenshot of HAProxy's stats page.
+
+   
+
 7. Finally, set the node in MAINT mode. Redo the three same steps and explain what is happening. Provide a screenshot of HAProxy's stats page.
+
+   
 
 ## Task 4: Round robin in degraded mode
 
