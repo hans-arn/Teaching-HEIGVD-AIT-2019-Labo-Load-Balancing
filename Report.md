@@ -203,27 +203,69 @@ The correct behavior would be that the load balancer always sends the request **
 
 1. Be sure the delay is of 0 milliseconds is set on `s1`. Do a run to have base data to compare with the next experiments.
 
-   
+   ![](doc/task4_1.png)
+
+   ![](doc/task4_12.png)
 
 2. Set a delay of 250 milliseconds on `s1`. Relaunch a run with the JMeter script and explain what it is happening?
 
-   
+   ![](doc/task4_2.png)
+
+   ![](doc/task4_21.png)
 
 3. Set a delay of 2500 milliseconds on `s1`. Same than previous step.
 
-   
+   ![](doc/task4_32.png)
+
+   ![](doc/task4_31.png)
 
 4. In the two previous steps, are there any error? Why?
 
-   
+   ![](doc/task4_4.png)
 
 5. Update the HAProxy configuration to add a weight to your nodes. For that, add `weight [1-256]` where the value of weight is between the two values (inclusive). Set `s1` to 2 and `s2` to 1. Redo a run with 250ms delay.
 
+   ```
+   backend nodes
+       # Define the protocol accepted
+       # http://cbonte.github.io/haproxy-dconv/2.2/configuration.html#4-mode
+       mode http
    
+       # Define the way the backend nodes are checked to know if they are alive or down
+       # http://cbonte.github.io/haproxy-dconv/2.2/configuration.html#4-option%20httpchk
+       option httpchk HEAD /
+   
+       # Define the balancing policy
+       # http://cbonte.github.io/haproxy-dconv/2.2/configuration.html#balance
+       balance roundrobin
+       cookie SERVERID insert indirect nocache
+   
+       # Automatically add the X-Forwarded-For header
+       # http://cbonte.github.io/haproxy-dconv/2.2/configuration.html#4-option%20forwardfor
+       # https://en.wikipedia.org/wiki/X-Forwarded-For
+       option forwardfor
+   
+       # With this config, we add the header X-Forwarded-Port
+       # http://cbonte.github.io/haproxy-dconv/2.2/configuration.html#4-http-request
+       http-request set-header X-Forwarded-Port %[dst_port]
+   
+       # Define the list of nodes to be in the balancing mechanism
+       # http://cbonte.github.io/haproxy-dconv/2.2/configuration.html#4-server
+       server s1 ${WEBAPP_1_IP}:3000 weight 2 check cookie s1
+       server s2 ${WEBAPP_2_IP}:3000 weight 1 check cookie s2
+   ```
+
+   ![](doc/task4_5.png)
 
 6. Now, what happened when the cookies are cleared between each requests  and the delay is set to 250ms ? We expect just one or two sentence to  summarize your observations of the behavior with/without cookies.
 
-   
+   with clearing of cookie for every request
+
+   ![](doc/task4_6.png)
+
+   without clearing of cookie for every request
+
+   ![](doc/task4_61.png)
 
 ## Task 5: Balancing strategies
 
