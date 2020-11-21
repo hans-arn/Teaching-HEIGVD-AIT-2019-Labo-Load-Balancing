@@ -139,34 +139,91 @@ The correct behavior would be that the load balancer always sends the request **
 
    ![](doc/task3_2.png)
 
+   Here on **/stats** we can see that s2 is in Drain mode. 
+
+   ![](doc/task3_drainproof.png)
+
 3. Refresh your browser and explain what is happening. Tell us if you stay on the same node or not. If yes, why? If no, why?
 
-   
+   We stay on the same node and it's totally normal. When we have active session on server during the changing state, the server did not close suddenly all session. It's like a bath, we did not put watter and we wait that all the remaining watter goes away. 
+
+   ![](doc/task3_s2drain.png)
 
 4. Open another browser and open `http://192.168.42.42`. What is happening?
 
-   
+   ![](doc/task3_1.png)
+
+   We can open as much browser as you want, we will be redirect to S1 because in drain mode, the server did not accept new sessions anymore.
 
 5. Clear the cookies on the new browser and repeat these two steps multiple times. What is happening? Are you reaching the node in DRAIN mode?
 
-   
+   If we clear cookie in the browser where we have the connection with S2. We can not reach the server in drain mode.
+
+   ![](doc/task3_51.png)
+
+   ![](doc/task3_52.png)
 
 6. Reset the node in READY mode. Repeat the three previous steps and explain what is happening. Provide a screenshot of HAProxy's stats page.
 
-   
+   ![](doc/task3_readyproof.png)
+
+   3.  Refresh your browser and explain what is happening. Tell us if you stay on the same node or not. If yes, why? If no, why?
+
+      As the drain mode we stay on server 2 but this this time, it's the normal behavior. 
+
+      ![](doc/task3_61.png)
+
+   4.  Open another browser and open `http://192.168.42.42`. What is happening?
+
+      We go on server 1 because we do not have a session on the other browser.  it's the normal behavior. 
+
+      ![](doc/task3_62.png)
+
+   5. Clear the cookies on the new browser and repeat these two steps multiple times.
+
+      And now we go on server 2. And if we repeat the process, we jump between S1 and S2
+
+      ![](doc/task3_63.png)
 
 7. Finally, set the node in MAINT mode. Redo the three same steps and explain what is happening. Provide a screenshot of HAProxy's stats page.
+
+   ![](doc/task3_maintproof.png)
+
+   3.  Refresh your browser and explain what is happening. Tell us if you stay on the same node or not. If yes, why? If no, why?
+
+      If we have a session with S2, if we refresh we are redirect to S1 because S2 is considered as out of order. 
+
+   4.  Open another browser and open `http://192.168.42.42`. What is happening?
+
+      Even if we try with another browser or if we clear the cookies, it's impossible to reach S2
 
    
 
 ## Task 4: Round robin in degraded mode
 
 1. Be sure the delay is of 0 milliseconds is set on `s1`. Do a run to have base data to compare with the next experiments.
+
+   
+
 2. Set a delay of 250 milliseconds on `s1`. Relaunch a run with the JMeter script and explain what it is happening?
+
+   
+
 3. Set a delay of 2500 milliseconds on `s1`. Same than previous step.
+
+   
+
 4. In the two previous steps, are there any error? Why?
+
+   
+
 5. Update the HAProxy configuration to add a weight to your nodes. For that, add `weight [1-256]` where the value of weight is between the two values (inclusive). Set `s1` to 2 and `s2` to 1. Redo a run with 250ms delay.
+
+   
+
 6. Now, what happened when the cookies are cleared between each requests  and the delay is set to 250ms ? We expect just one or two sentence to  summarize your observations of the behavior with/without cookies.
+
+   
 
 ## Task 5: Balancing strategies
 
