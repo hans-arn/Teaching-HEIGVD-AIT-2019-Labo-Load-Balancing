@@ -213,17 +213,23 @@ The correct behavior would be that the load balancer always sends the request **
 
    ![](doc/task4_21.png)
 
+   We can see that with 250 ms, the throughput fall drastically and the same parameter increase a little bit on server 2. Moreover it take a lot of time to finish all the request for the test.
+
 3. Set a delay of 2500 milliseconds on `s1`. Same than previous step.
 
    ![](doc/task4_32.png)
 
    ![](doc/task4_31.png)
 
+   We can see that only the server 2 is working because the server 1 is down.
+
 4. In the two previous steps, are there any error? Why?
+
+   With 250 ms, we do not have any errors but with 2500 ms an error appear on HAproxy. It seem that Ha detect automatically the state of the server. If the server, during the probe request, take more than 2 seconds to answer the server is considered as down.
 
    ![](doc/task4_4.png)
 
-5. Update the HAProxy configuration to add a weight to your nodes. For that, add `weight [1-256]` where the value of weight is between the two values (inclusive). Set `s1` to 2 and `s2` to 1. Redo a run with 250ms delay.
+5. Update the HAProxy configuration to add a weight to your nodes. For that, add `weight [1-256]` where the value of weight is between the two values (inclusive). Set `s1` to 2 and `s2` to 1. Redo a run with 250ms delay.(**TODO**)
 
    ```
    backend nodes
@@ -257,9 +263,9 @@ The correct behavior would be that the load balancer always sends the request **
 
    ![](doc/task4_5.png)
 
-6. Now, what happened when the cookies are cleared between each requests  and the delay is set to 250ms ? We expect just one or two sentence to  summarize your observations of the behavior with/without cookies.
+6. Now, what happened when the cookies are cleared between each requests  and the delay is set to 250ms ? We 
 
-   with clearing of cookie for every request
+   with clearing of cookie for every request (**TODO**)
 
    ![](doc/task4_6.png)
 
@@ -270,6 +276,38 @@ The correct behavior would be that the load balancer always sends the request **
 ## Task 5: Balancing strategies
 
 1. Briefly explain the strategies you have chosen and why you have chosen them.
+
+   - source 
+
+     It distribute the request in function of the ip source. We have choosen this strategy because it can be very useful to distribute for a kind of usage like a local server in an enterprise. where we know that one Ip address represent  one machine and not a cluster of tons of computer.
+
+   - leastconn
+
+     It distribute the request in function of the lest used server. It can be useful where all the servers  have the same technical design or for very long sessions. 
+
 2. Provide evidences that you have played with the two strategies (configuration done, screenshots, ...)
+
+   - Source 
+
+   ![](doc/task5_21.png)
+
+   ![](doc/task5_211.png)
+
+   As expected only one server has received our requests. 
+
+   - Leastconn
+
+     ![](doc/task5_lc.png)
+
+     ![](doc/task5_lc1.png)
+
+     As the default strategy, round robin, we have the same repartition between the two servers. We can notice that the throughput is even better we this strategy. 
+
 3. Compare the both strategies and conclude which is the best for this lab (not necessary the best at all).
+
+   We think that the strategy leastconn is better to not overload a server in comparison of an other. But we must have the same server to do that or add a biggest weight for a big server. 
+
+   Source strategy is not well designed for a normal use. If we take the example of HEIG where one address can represent a hudge amount  of machines. 
+
+   
 
