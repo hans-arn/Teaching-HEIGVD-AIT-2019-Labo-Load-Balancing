@@ -80,8 +80,6 @@ The correct behavior would be that the load balancer always sends the request **
 
    > Note: If the `ServerID` cookie isn't present in the request made, the proxy won't know where to send the request and return to a `Round Robin` behaviour (i.e. send the request to which ever server is available).
 
-   
-
    | First request               | Second request               |
    | --------------------------- | ---------------------------- |
    | ![](doc/task2_firstreq.png) | ![](doc/task2_secondreq.png) |
@@ -112,11 +110,11 @@ The correct behavior would be that the load balancer always sends the request **
 
    New Browser:
 
-   The first tests were made with firefox. if we do the same test with google chrome we can see that we are in the first case with the same exchange. 
+   Cookies are stored in the browser, so if we change browsers, it's like we're contacting the service for the first time.
 
-5. Provide a screenshot of JMeter's summary report. Is there a difference with this run and the run of Task 1?
+   **Provide a screenshot of JMeter's summary report. Is there a difference with this run and the run of Task 1?**
 
-   No because only one node has been choosen with the cookie. 
+   No there aren't any differences with the run we did in Task 1.
 
    ![](doc/task2_5a.png)
 
@@ -128,15 +126,21 @@ The correct behavior would be that the load balancer always sends the request **
 
    ![](doc/task2_7.png)
 
+   # TODO
+   
+   When the threads perform their very first request, the load balancer will redirect them to a server using the `Round Robin` algorithm. Then, all the 
+   
+   After their first requests, each thread will be "assigned" to a server and get the according cookies. Then all the following requests will be handled to the server that 
+   
    With the first thread the load balancer send it to S1 and the second thread with the round robin method goes on S2. After that, every thread has a cookie. 
 
 ## Task 3: Drain mode
 
-1. Take a screenshot of the Step 5 and tell us which node is answering.
+1. **Take a screenshot of the Step 5 and tell us which node is answering.**
 
    For screenshot see Step 5. S2 has answered to the request.
 
-2. Based on your previous answer, set the node in DRAIN mode. Take a screenshot of the HAProxy state page.
+2. **Based on your previous answer, set the node in DRAIN mode. Take a screenshot of the HAProxy state page.**
 
    ```
    # to enable HAProxy state page in frontend part 
@@ -149,65 +153,61 @@ The correct behavior would be that the load balancer always sends the request **
 
    ![](doc/task3_2.png)
 
-   Here on **/stats** we can see that s2 is in Drain mode. 
+   If we go on **/stats** we can see that s2 is in `Drain` mode. 
 
-   ![](doc/task3_drainproof.png)
+   ![](doc/task3_drainproof.png) 
 
-3. Refresh your browser and explain what is happening. Tell us if you stay on the same node or not. If yes, why? If no, why?
+3. **Refresh your browser and explain what is happening. Tell us if you stay on the same node or not. If yes, why? If no, why?**
 
-   We stay on the same node and it's totally normal. When we have active session on server during the changing state, the server did not close suddenly all session. It's like a bath, we did not put watter and we wait that all the remaining watter goes away. 
+   Since we didn't clear our cookies (on our browser), we stayed on the same node. Which is totally normal, when a server is in `Drain` mode, it will still accept old sessions but it won't accept any new sessions.
 
    ![](doc/task3_s2drain.png)
 
-4. Open another browser and open `http://192.168.42.42`. What is happening?
+4. **Open another browser and open `http://192.168.42.42`. What is happening?**
 
    ![](doc/task3_1.png)
 
-   We can open as much browser as you want, we will be redirect to S1 because in drain mode, the server did not accept new sessions anymore.
+   Since this is the "first" time we're contacting the server, we're redirected to S1. As stated above, a node that is in `Drain` mode won't accept any new sessions.
 
-5. Clear the cookies on the new browser and repeat these two steps multiple times. What is happening? Are you reaching the node in DRAIN mode?
+5. **Clear the cookies on the new browser and repeat these two steps multiple times. What is happening? Are you reaching the node in DRAIN mode?**
 
-   If we clear cookie in the browser where we have the connection with S2. We can not reach the server in drain mode.
+   If we clear the cookies in "our" browser (i.e. the one that still has a connection with S2), we won't be able to reach it anymore. And clearing the cookies on the second browser doesn't change anything, we still can't reach S2. 
 
-   ![](doc/task3_51.png)
+   | Our browser           | Browser 2             |
+   | --------------------- | --------------------- |
+   | ![](doc/task3_51.png) | ![](doc/task3_52.png) |
 
-   ![](doc/task3_52.png)
-
-6. Reset the node in READY mode. Repeat the three previous steps and explain what is happening. Provide a screenshot of HAProxy's stats page.
+6. **Reset the node in READY mode. Repeat the three previous steps and explain what is happening. Provide a screenshot of HAProxy's stats page.**
 
    ![](doc/task3_readyproof.png)
 
-   3.  Refresh your browser and explain what is happening. Tell us if you stay on the same node or not. If yes, why? If no, why?
+   Now that **S2** is in `READY` mode, it will again accept new sessions. Which means that the `Round robin` and `Sticky session` policy will be able to again redirect request to S2.
 
-      As the drain mode we stay on server 2 but this this time, it's the normal behavior. 
+   > If we refresh our browser, we will stay on S1 since it was the last node that handled our requests.
+   >
+   > ![](doc/task3_61.png)
+   >
+   > When accessing the server from a new browser, the load balancer will redirect us to the first available node. Here, we reached S2 (which is handy because it shows that it does accept  new requests)
+   >
+   > ![](doc/task3_62.png)
+   >
+   > By clearing our cookies and accessing the server again and again, we will simply go back and fort between the available node
+   >
+   > | First clear            | Second clear           |
+   > | ---------------------- | ---------------------- |
+   > | ![](doc/task3_63a.png) | ![](doc/task3_63b.png) |
 
-      ![](doc/task3_61.png)
-
-   4.  Open another browser and open `http://192.168.42.42`. What is happening?
-
-      We go on server 1 because we do not have a session on the other browser.  it's the normal behavior. 
-
-      ![](doc/task3_62.png)
-
-   5. Clear the cookies on the new browser and repeat these two steps multiple times.
-
-      And now we go on server 2. And if we repeat the process, we jump between S1 and S2
-
-      ![](doc/task3_63.png)
-
-7. Finally, set the node in MAINT mode. Redo the three same steps and explain what is happening. Provide a screenshot of HAProxy's stats page.
+7. **Finally, set the node in MAINT mode. Redo the three same steps and explain what is happening. Provide a screenshot of HAProxy's stats page.**
 
    ![](doc/task3_maintproof.png)
 
-   3.  Refresh your browser and explain what is happening. Tell us if you stay on the same node or not. If yes, why? If no, why?
+   Now that **S2** is in `MAINT` mode, we can try whatever we want, clearing our cookies using a different browser, we'll never be able to reach it because it's considered as "out of order".
 
-      If we have a session with S2, if we refresh we are redirect to S1 because S2 is considered as out of order. 
+   So as long as S2 is in `MAINT` mode, all the requests will be handled by S1.
 
-   4.  Open another browser and open `http://192.168.42.42`. What is happening?
-
-      Even if we try with another browser or if we clear the cookies, it's impossible to reach S2
-
-   
+   | Our browser           | Other browser         |
+   | --------------------- | --------------------- |
+   | ![](doc/task3_7a.png) | ![](doc/task3_7b.png) |
 
 ## Task 4: Round robin in degraded mode
 
