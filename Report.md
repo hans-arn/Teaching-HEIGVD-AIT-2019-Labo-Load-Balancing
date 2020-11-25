@@ -12,7 +12,7 @@ The load balancer uses a `Round Robin` algorithm. Which means that each time a r
 | --------------------------- | --------------------------- |
 | ![](doc/task1_request1.png) | ![](doc/task1_request2.png) |
 
-If we take a look at the request made by the client makes, we will see that it transmits the cookie `NODESESSID` that it received after it's previous request. But, since we're using a round robin reverse proxy, the request will be handled by a different server. When said server will receive the request, it won't recognize the cookie the user transmitted (since it doesn't have any session with the given id), so it will create a new session and return the new `NODESESSID` to the client.
+If we take a look at the request made by the client makes, we will see that it transmits the cookie `NODESESSID` that it received after it's previous request. But, since we're using a round robin reverse proxy, the request will be handled by a different server. When said server will receive the request, it won't recognize the cookie the user transmitted (since it doesn't have any session with the given id), thus it will create a new session and return the new `NODESESSID` to the client.
 
 > Note: If it's the first time that the client makes a request, there won't be any cookies transmitted!
 
@@ -56,7 +56,7 @@ The correct behavior would be that the load balancer always sends the request **
 
    
 
-2. Provide the modified `haproxy.cfg` file with a short explanation of the modifications you did to enable sticky session management.
+2. **Provide the modified `haproxy.cfg` file with a short explanation of the modifications you did to enable sticky session management.**
 
    ```sh
    backend nodes
@@ -74,13 +74,23 @@ The correct behavior would be that the load balancer always sends the request **
        server s2 ${WEBAPP_2_IP}:3000 check cookie s2
    ```
 
-3. Explain what is the behavior when you open and refresh the URL http://192.168.42.42 in your browser. Add screenshots to complement your explanations. We expect that you take a deeper a look at session management.
+3. **Explain what is the behavior when you open and refresh the URL http://192.168.42.42 in your browser. Add screenshots to complement your explanations. We expect that you take a deeper a look at session management.**
 
-   Quand on arrive sur le navigateur sans avoir de cookie, on est sur le serveur 2. si on refresh, on reste sur le même serveur car on a un cookie. Si on efface les cookies, on passe sur le serveur 1. 
+   The first time we access the application, HAProxy will redirect us to any server (a bit like if it was setup to use the `Round Robin` algorithm). The server that will handle our request, will create a new session for us and return the payload with the session id set in the cookie `NODESESSID`. Before the proxy sends the servers response to us, it will attach a new cookie `ServerID`. This extra cookie will allow the proxy to redirect any of other requests we make to the server that handled our very first request.
 
-   ![](doc/task2_ref.png)
+   > Note: If the `ServerID` cookie isn't present in the request made, the proxy won't know where to send the request and return to a `Round Robin` behaviour (i.e. send the request to which ever server is available).
 
-4. Provide a sequence diagram to explain what is happening when one requests the URL for the first time and then refreshes the page. We want to see what is happening with the cookie. We want to see the sequence of messages exchanged (1) between the browser and HAProxy and (2) between HAProxy and the nodes S1 and S2. We also want to see what is happening when a second browser is used.
+   
+
+   | First request               | Second request               |
+   | --------------------------- | ---------------------------- |
+   | ![](doc/task2_firstreq.png) | ![](doc/task2_secondreq.png) |
+
+   As we can see, the server that handled the request and the id stay the same and that the number of `seesionViews` increased \o/ . Further proof that it was the sticky session that work and not dumb luck,  we can see the cookie `ServerID`  in the clients request.
+
+   ![](doc/task2_reqcookies.png)
+
+4. **Provide a sequence diagram to explain what is happening when one requests the URL for the first time and then refreshes the page. We want to see what is happening with the cookie. We want to see the sequence of messages exchanged (1) between the browser and HAProxy and (2) between HAProxy and the nodes S1 and S2. We also want to see what is happening when a second browser is used.**
 
    Request for the first time :
 
