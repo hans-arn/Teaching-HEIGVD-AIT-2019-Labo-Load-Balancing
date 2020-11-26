@@ -1,6 +1,6 @@
 # AIT Load Balancing 
 
-> Authors: Doran Kayoumi, Quentin Saucy, Jérôme Arn 
+> Authors: Doran Kayoumi, Jérôme Arn, Quentin Saucy
 
 ## Task 1: Install the tools
 
@@ -40,41 +40,75 @@ The correct behavior would be that the load balancer always sends the request **
 
 ## Task 2: Sticky sessions
 
-1. There is different way to implement the sticky session. One possibility  is to use the SERVERID provided by HAProxy. Another way is to use the  NODESESSID provided by the application. Briefly explain the difference  between both approaches (provide a sequence diagram with cookies to show the difference).
+1. **There is different way to implement the sticky session. One possibility  is to use the SERVERID provided by HAProxy. Another way is to use the  NODESESSID provided by the application. Briefly explain the difference  between both approaches (provide a sequence diagram with cookies to show the difference).**
+
+   The difference between `SERVERID` and `NODESESSID` resides in who creates the cookie. The former is handled by HAProxy and the latter by the application.
+
+   
+
+   **With the application approach (i.e. `NODESESSID`):**
+
+   At the first response, the application will send a new cookie to the client `NODESESSID=i12KJF2`. When passing through HAProxy, the name of the application  handling the client is prepended to said cookie `NODESESSID=s1~i12KJF2`.
+
+   > Note: The prefix added by HAProxy uses a `~` as a separator which will be useful when the client makes a request.
+
+   So now, when the client makes another request, it will contain the cookie that it previously received `NODESESSID=s1~i12KJF2`. Now when it passes through HAProxy, the prefix that it added is used to determine where to forward the request and is removed before the request is forwarded.
 
    ```sequence
-   Browser->>ha: Normal Request
-   ha->>S1/S2: Normal Request forward to server \n with round robin
-   S1/S2->>ha: S1/S2 add NODESESSID 
-   ha->>Browser: cookie NODESESSID \n ha add ServerID cookie
+   Client->>RP: GET /
+   RP->>App: GET /
+   App->>RP: Response: NODESESSID=1
+   RP->>Client: Response: NODESESSID=App~1
    
+   Client->>RP: GET /, NODESESSID=App~1
+   RP->>App: GET /, NODESESSID=1
+   App->>RP: Response: NODESESSID=1
+   RP->>Client: Response: NODESESSID=App~1
    ```
 
-   Dans le projet de base le NODESESSID est activé mais le load balancing ne fonctionne pas. Cela peut être expliqué car le NODESESSID sert juste à l'application à stocker des informations et à être statefull. Mais il n'indique pas à ha proxy vers quelle machine diriger la requête. 
+   **With the HAProxy approach (i.e. `SERVERID`):**
 
-   SERVERID sert à Ha proxy à savoir vers quelle serveur envoyer la requête. Si il n y a pas de cookie, dans le cas de notre labo, il choisira avec la méthode round robin.
+   > Note: It the case of this laboratory, the application will always add a cookie `NODESESSID`. But, to simplify the explanations and the diagram for this approach, we've simply omitted it.
+
+   At the first response, the application will send it's payload. When passing through HAProxy, a new cookie `SERVERID=s1` is added to the header which will indicate which server handled the request.
+
+   So now, when the client makes another request, it will contain the cookie added by HAProxy `SERVERID=s1`. Now when it passes through HAProxy, it will directly be forwarded to the correct application.
+
+   ```sequence
+   Client->>RP: GET /
+   RP->>App: GET /
+   App->>RP: Response 
+   RP->>Client: Response: SERVERID=App
+   
+   Client->>RP: GET / SERVERID=App
+   RP->>App: GET /
+   App->>RP: Response
+   RP->>Client: Response
+   ```
+
+   > Note: When the reverse proxy forwards the response to the client the second time, it doesn't insert the `SERVERID` cookie since the client already knows it.
 
    
 
-2. **Provide the modified `haproxy.cfg` file with a short explanation of the modifications you did to enable sticky session management.**
+   For the rest of the laboratory, we'll be using the `SERERID` approach.
+
+1. **Provide the modified `haproxy.cfg` file with a short explanation of the modifications you did to enable sticky session management.**
 
    ```sh
    backend nodes
-       mode http
-       option httpchk HEAD /
-       balance roundrobin
-       # indique que nous allons utiliser les cookies serverID sans cache l'option indirect indique que si le client a déjà 	un cookie le server n'en remet pas un 
+   	# ...
+   	
+       # This line tells HAProxy to setup a cookie called SERVERID only if the user did not come with such cookie.
        cookie SERVERID insert indirect nocache
+   	
+   	# ...
    
-       option forwardfor
-       http-request set-header X-Forwarded-Port %[dst_port]
-   
-   	# Set les différents noeuds vers lesquels envoyés les requêtes avec validation des cookies pour chacun des noeuds 		respectifs
+   	#  provide the value of the cookie inserted by HAProxy. When the client comes back, then HAProxy knows directly which server to choose for this client.
        server s1 ${WEBAPP_1_IP}:3000 check cookie s1
        server s2 ${WEBAPP_2_IP}:3000 check cookie s2
    ```
 
-3. **Explain what is the behavior when you open and refresh the URL http://192.168.42.42 in your browser. Add screenshots to complement your explanations. We expect that you take a deeper a look at session management.**
+2. **Explain what is the behavior when you open and refresh the URL http://192.168.42.42 in your browser. Add screenshots to complement your explanations. We expect that you take a deeper a look at session management.**
 
    The first time we access the application, HAProxy will redirect us to any server (a bit like if it was setup to use the `Round Robin` algorithm). The server that will handle our request, will create a new session for us and return the payload with the session id set in the cookie `NODESESSID`. Before the proxy sends the servers response to us, it will attach a new cookie `ServerID`. This extra cookie will allow the proxy to redirect any of other requests we make to the server that handled our very first request.
 
@@ -88,7 +122,7 @@ The correct behavior would be that the load balancer always sends the request **
 
    ![](doc/task2_reqcookies.png)
 
-4. **Provide a sequence diagram to explain what is happening when one requests the URL for the first time and then refreshes the page. We want to see what is happening with the cookie. We want to see the sequence of messages exchanged (1) between the browser and HAProxy and (2) between HAProxy and the nodes S1 and S2. We also want to see what is happening when a second browser is used.**
+3. **Provide a sequence diagram to explain what is happening when one requests the URL for the first time and then refreshes the page. We want to see what is happening with the cookie. We want to see the sequence of messages exchanged (1) between the browser and HAProxy and (2) between HAProxy and the nodes S1 and S2. We also want to see what is happening when a second browser is used.**
 
    Request for the first time :
 
@@ -213,77 +247,54 @@ The correct behavior would be that the load balancer always sends the request **
 
 ## Task 4: Round robin in degraded mode
 
-1. Be sure the delay is of 0 milliseconds is set on `s1`. Do a run to have base data to compare with the next experiments.
+1. **Be sure the delay is of 0 milliseconds is set on `s1`. Do a run to have base data to compare with the next experiments.**
 
    ![](doc/task4_1.png)
 
    ![](doc/task4_12.png)
 
-2. Set a delay of 250 milliseconds on `s1`. Relaunch a run with the JMeter script and explain what it is happening?
+2. **Set a delay of 250 milliseconds on `s1`. Relaunch a run with the JMeter script and explain what it is happening?**
 
    ![](doc/task4_2.png)
 
    ![](doc/task4_21.png)
 
-   We can see that with 250 ms, the throughput fall drastically and the same parameter increase a little bit on server 2. Moreover it take a lot of time to finish all the request for the test.
+   We can see that with 250 ms, the throughput of S1 drastically fell and that it slightly increased for S2. 
 
-3. Set a delay of 2500 milliseconds on `s1`. Same than previous step.
+3. **Set a delay of 2500 milliseconds on `s1`. Same than previous step.**
 
    ![](doc/task4_32.png)
 
    ![](doc/task4_31.png)
 
-   We can see that only the server 2 is working because the server 1 is down.
+   We can see that only S2 is handling requests. Since S1 has such a big latency, the load balancer considers it as **down**.
 
-4. In the two previous steps, are there any error? Why?
+4. **In the two previous steps, are there any error? Why?**
 
-   With 250 ms, we do not have any errors but with 2500 ms an error appear on HAproxy. It seem that Ha detect automatically the state of the server. If the server, during the probe request, take more than 2 seconds to answer the server is considered as down.
+   With a delay of 250 ms, there aren't any errors on the other hand, with a delay of 2500 ms HAProxy gives us an error. It's because S1 took more than 2 seconds to answer during the probe request so it's now considered as down.
 
    ![](doc/task4_4.png)
 
-5. Update the HAProxy configuration to add a weight to your nodes. For that, add `weight [1-256]` where the value of weight is between the two values (inclusive). Set `s1` to 2 and `s2` to 1. Redo a run with 250ms delay.(**TODO**)
+5. **Update the HAProxy configuration to add a weight to your nodes. For that, add `weight [1-256]` where the value of weight is between the two values (inclusive). Set `s1` to 2 and `s2` to 1. Redo a run with 250ms delay.**
 
    ```
    backend nodes
-       # Define the protocol accepted
-       # http://cbonte.github.io/haproxy-dconv/2.2/configuration.html#4-mode
-       mode http
-   
-       # Define the way the backend nodes are checked to know if they are alive or down
-       # http://cbonte.github.io/haproxy-dconv/2.2/configuration.html#4-option%20httpchk
-       option httpchk HEAD /
-   
-       # Define the balancing policy
-       # http://cbonte.github.io/haproxy-dconv/2.2/configuration.html#balance
-       balance roundrobin
-       cookie SERVERID insert indirect nocache
-   
-       # Automatically add the X-Forwarded-For header
-       # http://cbonte.github.io/haproxy-dconv/2.2/configuration.html#4-option%20forwardfor
-       # https://en.wikipedia.org/wiki/X-Forwarded-For
-       option forwardfor
-   
-       # With this config, we add the header X-Forwarded-Port
-       # http://cbonte.github.io/haproxy-dconv/2.2/configuration.html#4-http-request
-       http-request set-header X-Forwarded-Port %[dst_port]
-   
-       # Define the list of nodes to be in the balancing mechanism
-       # http://cbonte.github.io/haproxy-dconv/2.2/configuration.html#4-server
+   	# ....
        server s1 ${WEBAPP_1_IP}:3000 weight 2 check cookie s1
        server s2 ${WEBAPP_2_IP}:3000 weight 1 check cookie s2
    ```
-
+   
    ![](doc/task4_5.png)
+   
+   Even though S1 has a greater weight, the requests are evenly split between both nodes. Simply because the load balancer is using the `Sticky Session` policy.
+   
+   ![](doc/task4_61.png)
+   
+6. **Now, what happened when the cookies are cleared between each requests  and the delay is set to 250ms ?**  
 
-6. Now, what happened when the cookies are cleared between each requests  and the delay is set to 250ms ? We 
-
-   with clearing of cookie for every request (**TODO**)
+   Since the cookies are getting cleared between each requests, the load balancer will behave like it's using a `Round Robin` policy and redirect the requests to the first available node. BUT, since S1 has a greater weight, it will be getting more requests than S2 even though it takes longer to answer.
 
    ![](doc/task4_6.png)
-
-   without clearing of cookie for every request
-
-   ![](doc/task4_61.png)
 
 ## Task 5: Balancing strategies
 
