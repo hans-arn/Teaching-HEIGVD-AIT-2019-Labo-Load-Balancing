@@ -314,6 +314,7 @@ HAProxy->>Browser: Response: application/json\n Set-Cookie NODESESSID=2
    <u>Source:</u> 
 
    ```
+   # ...
    backend nodes
        # Define the protocol accepted
        # http://cbonte.github.io/haproxy-dconv/2.2/configuration.html#4-mode
@@ -344,13 +345,13 @@ HAProxy->>Browser: Response: application/json\n Set-Cookie NODESESSID=2
 
    When contacting the application for the first time, we can see that S2 handled our request. And if we refresh the browser it's still S2 handling our requests.
 
-   |                                          |                                          |
+   | First request                            | Nth request                              |
    | ---------------------------------------- | ---------------------------------------- |
    | ![](doc/task5_1-source_freq_browser.png) | ![](doc/task5_1-source_sreq_browser.png) |
 
    Even if we clear our cookies our use a different browser, it's still S2 that will handle our requests.
 
-   |                                          |                                            |
+   | Cleared cookies                          | New browser                                |
    | ---------------------------------------- | ------------------------------------------ |
    | ![](doc/task5_1-source_cookie_clear.png) | ![](doc/task5_1-source_second_browser.png) |
 
@@ -377,17 +378,84 @@ HAProxy->>Browser: Response: application/json\n Set-Cookie NODESESSID=2
 
    <u>Leastconn:</u>
 
-   ![](doc/task5_lc.png)
+   ```
+   backend nodes
+       # Define the protocol accepted
+       # http://cbonte.github.io/haproxy-dconv/2.2/configuration.html#4-mode
+       mode http
+   
+       # Define the way the backend nodes are checked to know if they are alive or down
+       # http://cbonte.github.io/haproxy-dconv/2.2/configuration.html#4-option%20httpchk
+       option httpchk HEAD /
+   
+       # Define the balancing policy
+       # http://cbonte.github.io/haproxy-dconv/2.2/configuration.html#balance
+       balance leastconn
+   
+       # Automatically add the X-Forwarded-For header
+       # http://cbonte.github.io/haproxy-dconv/2.2/configuration.html#4-option%20forwardfor
+       # https://en.wikipedia.org/wiki/X-Forwarded-For
+       option forwardfor
+   
+       # With this config, we add the header X-Forwarded-Port
+       # http://cbonte.github.io/haproxy-dconv/2.2/configuration.html#4-http-request
+       http-request set-header X-Forwarded-Port %[dst_port]
+   
+       # Define the list of nodes to be in the balancing mechanism
+       # http://cbonte.github.io/haproxy-dconv/2.2/configuration.html#4-server
+       server s1 ${WEBAPP_1_IP}:3000 check
+       server s2 ${WEBAPP_2_IP}:3000 check
+   ```
 
-   ![](doc/task5_lc1.png)
+   When contacting the application for the first time, we can see that S2 handled our request. And if we refresh the browser we go back and fort between S1 and S2.
 
-   As the default strategy, round robin, we have the same repartition between the two servers. We can notice that the throughput is even better we this strategy. 
+   | First request                               | Nth request                                 |
+   | ------------------------------------------- | ------------------------------------------- |
+   | ![](doc/task5_1-leastconn_freq_browser.png) | ![](doc/task5_1-leastconn_sreq_browser.png) |
+
+   Testing with JMeter, we can see that the requests are almost evenly split between both nodes. There are slightly more requests sent to S1 which means that it processed requests faster than S2. 
+
+   ![](doc/task5_1-leastconn_jemeter1.png)
+
+   As we did with the `source` policy, we'll give S1 a bigger weight.
+
+   ```
+   server s1 ${WEBAPP_1_IP}:3000 weight 2 check
+   server s2 ${WEBAPP_2_IP}:3000 weight 1 check
+   ```
+
+   Running JMeter again we can see that this time it's S2 that has slightly more requests. It's most likely due to the fact that S1 has a greater weight so it had more simultaneous connections than S2 :
+
+   ![](doc/task5_1-leastconn_jemeter2.png)
+
+   Now to be totally crazy, we'll enable cookies to see how it works with the `leastconn` policy.
+
+   > Note: We've removed the weights.
+
+   ```
+   # ...
+   cookie SERVERID insert indirect nocache
+   # ...
+   server s1 ${WEBAPP_1_IP}:3000 check cookie s1
+   server s2 ${WEBAPP_2_IP}:3000 check cookie s2
+   ```
+
+   And after running more JMeter tests, we can see that the `sticky session` isn't affected by the `leastconn` policy similarly to what happened with the `round robin` policy in previous tasks.
+
+   ![](doc/task5_1-leastconn_jemeter3.png)
+
+   We can confirm the tests by performing request from a browser. After the first request, the policy forwards the request to the first available server and after refreshing the page, we're still handled by the same server
+
+   | First request                                       | Nth request                                         |
+   | --------------------------------------------------- | --------------------------------------------------- |
+   | ![](doc/task5_1-leastconn_cookies_freq_browser.png) | ![](doc/task5_1-leastconn_cookies_sreq_browser.png) |
+
+   If we clear our cookies or use another browser, it's the same as if we did our first request.
+
+   | Cleared cookies                                | New browser                                       |
+   | ---------------------------------------------- | ------------------------------------------------- |
+   | ![](doc/task5_1-leastconn_cookies_cleared.png) | ![](doc/task5_1-leastconn_cookies_newbrowser.png) |
 
 3. **Compare the both strategies and conclude which is the best for this lab (not necessary the best at all).**
 
-   We think that the strategy leastconn is better to not overload a server in comparison of an other. But we must have the same server to do that or add a biggest weight for a big server. 
-
-   Source strategy is not well designed for a normal use. If we take the example of HEIG where one address can represent a hudge amount  of machines. 
-
-   
-
+   TODO
