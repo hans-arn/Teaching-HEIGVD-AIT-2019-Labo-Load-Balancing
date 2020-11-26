@@ -169,8 +169,6 @@ HAProxy->>Browser: Response: application/json\n Set-Cookie NODESESSID=2
    ![](doc/task2_7.png)
 
    When the threads perform their very first request, the load balancer will redirect them to a server using the `Round Robin` balancing strategy (e.g. Thread 1 to S1 and Thread 2 to S2). Afterwards, we can see that the load balancers `Sticky Session` policy is working correctly and that the requests are evenly split between both servers.
-   
-   The Server will add a `NODESESSIONID` cookie in their response and HAproxy will do the same and add a `SERVERID` cookie. 
 
 ## Task 3: Drain mode
 
@@ -293,35 +291,99 @@ HAProxy->>Browser: Response: application/json\n Set-Cookie NODESESSID=2
 
 ## Task 5: Balancing strategies
 
-1. Briefly explain the strategies you have chosen and why you have chosen them.
+1. **Briefly explain the strategies you have chosen and why you have chosen them.**
 
-   - source 
+   We've decided to go with the `source` and `leastconn` strategies. 
 
-     It distribute the request in function of the ip source. We have choosen this strategy because it can be very useful to distribute for a kind of usage like a local server in an enterprise. where we know that one Ip address represent  one machine and not a cluster of tons of computer.
+   <u>Source:</u>
 
-   - leastconn
+   This strategy uses the source IP address hashed and divided by the total weight of the running servers to designate which server will receive the request. We chose to try this strategy it seemed interesting that, to some degree, it can handle sessions without the usage of cookies. 
 
-     It distribute the request in function of the lest used server. It can be useful where all the servers  have the same technical design or for very long sessions. 
+   <u>Leastconn:</u>
 
-2. Provide evidences that you have played with the two strategies (configuration done, screenshots, ...)
+   This one seemed interesting because it's mechanism is similar to a `round robin` policy except it into account server usage and prioritises least used servers. What made use choose this is policy is that the documentation states that it isn't well suited for protocols such as HTTP. 
 
-   - Source 
+   > ... but is not very well suited for protocols using short sessions such as HTTP ...
+   >
+   > Source: http://cbonte.github.io/haproxy-dconv/2.3/snapshot/configuration.html#4-balance
 
-   ![](doc/task5_21.png)
+   So we decided to try it out.
 
-   ![](doc/task5_211.png)
+2. **Provide evidences that you have played with the two strategies (configuration done, screenshots, ...)**
 
-   As expected only one server has received our requests. 
+   <u>Source:</u> 
 
-   - Leastconn
+   ```
+   backend nodes
+       # Define the protocol accepted
+       # http://cbonte.github.io/haproxy-dconv/2.2/configuration.html#4-mode
+       mode http
+   
+       # Define the way the backend nodes are checked to know if they are alive or down
+       # http://cbonte.github.io/haproxy-dconv/2.2/configuration.html#4-option%20httpchk
+       option httpchk HEAD /
+   
+       # Define the balancing policy
+       # http://cbonte.github.io/haproxy-dconv/2.2/configuration.html#balance
+       balance source 
+   
+       # Automatically add the X-Forwarded-For header
+       # http://cbonte.github.io/haproxy-dconv/2.2/configuration.html#4-option%20forwardfor
+       # https://en.wikipedia.org/wiki/X-Forwarded-For
+       option forwardfor
+   
+       # With this config, we add the header X-Forwarded-Port
+       # http://cbonte.github.io/haproxy-dconv/2.2/configuration.html#4-http-request
+       http-request set-header X-Forwarded-Port %[dst_port]
+   
+       # Define the list of nodes to be in the balancing mechanism
+       # http://cbonte.github.io/haproxy-dconv/2.2/configuration.html#4-server
+       server s1 ${WEBAPP_1_IP}:3000 check
+       server s2 ${WEBAPP_2_IP}:3000 check
+   ```
 
-     ![](doc/task5_lc.png)
+   When contacting the application for the first time, we can see that S2 handled our request. And if we refresh the browser it's still S2 handling our requests.
 
-     ![](doc/task5_lc1.png)
+   |                                          |                                          |
+   | ---------------------------------------- | ---------------------------------------- |
+   | ![](doc/task5_1-source_freq_browser.png) | ![](doc/task5_1-source_sreq_browser.png) |
 
-     As the default strategy, round robin, we have the same repartition between the two servers. We can notice that the throughput is even better we this strategy. 
+   Even if we clear our cookies our use a different browser, it's still S2 that will handle our requests.
 
-3. Compare the both strategies and conclude which is the best for this lab (not necessary the best at all).
+   |                                          |                                            |
+   | ---------------------------------------- | ------------------------------------------ |
+   | ![](doc/task5_1-source_cookie_clear.png) | ![](doc/task5_1-source_second_browser.png) |
+
+   Testing with JMeter, we can see that only S2 is receiving requests!
+
+   ![](doc/task5_1-source_jemeter1.png)
+
+   > Note: We configured JMeter to use 2 threads.
+
+   To spice things up a little, we've updated the configuration and gave S1 a bigger weight to see if that would change anything.
+
+   ```
+   server s1 ${WEBAPP_1_IP}:3000 weight 2 check
+   server s2 ${WEBAPP_2_IP}:3000 weight 1 check
+   ```
+
+   ![](doc/task5_1-source_weight_change.png)
+
+   Running JMeter again we can see that it's now S1 handling all requests:
+
+   ![](doc/task5_1-source_jemeter2.png)
+
+   This is too be expected since the hash is divided by the total weight of the running servers and by increasing the weight of S1 this value changed.
+
+   <u>Leastconn:</u>
+
+   ![](doc/task5_lc.png)
+
+   ![](doc/task5_lc1.png)
+
+   As the default strategy, round robin, we have the same repartition between the two servers. We can notice that the throughput is even better we this strategy. 
+
+3. **Compare the both strategies and conclude which is the best for this lab (not necessary the best at all).**
 
    We think that the strategy leastconn is better to not overload a server in comparison of an other. But we must have the same server to do that or add a biggest weight for a big server. 
 
