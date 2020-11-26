@@ -128,9 +128,11 @@ The correct behavior would be that the load balancer always sends the request **
 
    # TODO
    
-   When the threads perform their very first request, the load balancer will redirect them to a server using the `Round Robin` algorithm. Then, all the 
+   When the threads perform their very first request, the load balancer will redirect them to a server using the `Round Robin` algorithm. The Server will add a SESSIONID cookie in their response and HAproxy will do  the same with a SERVERID cookie. 
    
-   After their first requests, each thread will be "assigned" to a server and get the according cookies. Then all the following requests will be handled to the server that 
+   After their first requests, each thread will be "assigned" to a server. Then all the following requests will be handled by the assigned server
+   
+   
    
    With the first thread the load balancer send it to S1 and the second thread with the round robin method goes on S2. After that, every thread has a cookie. 
 
