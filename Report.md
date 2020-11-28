@@ -301,7 +301,7 @@ HAProxy->>Browser: Response: application/json\n Set-Cookie NODESESSID=2
 
    <u>Leastconn:</u>
 
-   This one seemed interesting because it's mechanism is similar to a `round robin` policy except it into account server usage and prioritises least used servers. What made use choose this is policy is that the documentation states that it isn't well suited for protocols such as HTTP. 
+   This one seemed interesting because it's mechanism is similar to a `round robin` policy except it into account server usage and prioritizes least used servers. What made use choose this is policy is that the documentation states that it isn't well suited for protocols such as HTTP. 
 
    > ... but is not very well suited for protocols using short sessions such as HTTP ...
    >
@@ -458,4 +458,8 @@ HAProxy->>Browser: Response: application/json\n Set-Cookie NODESESSID=2
 
 3. **Compare the both strategies and conclude which is the best for this lab (not necessary the best at all).**
 
-   TODO
+   These policies have different purposes, `source` is to have a kind of sticky session and `leastconn` to get the least used servers to be used more often. Having said that, they do have their own issues. As the documentation stated, `leastconn` is best suited when working with long sessions (e.g. sql, ldap, etc…) and it can be seen in this lab as it basically works as the `round robin` policy (a less efficient one) . Source on the other did seem interesting since it allowed to set up a sticky session without the usage of cookies, but (in the case of this lab) it did cause that all the requests were forwarded to only one server (which could cause an overload). 
+
+   > Note: If take a larger scale example, `source` could be great if it's used internally (e.g. to access an intranet) as every machine have there own IP address. On the other hand, if we try and access an external resource, all the machines in the network will most likely pass trough a NAT and will have the same IP hence they will always access the same server which could lead to an overload.
+   
+   In sight of these issues, we believe that `leastconn` is the best solution for this laboratory.
