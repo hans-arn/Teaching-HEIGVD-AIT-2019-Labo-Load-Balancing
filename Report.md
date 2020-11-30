@@ -2,6 +2,10 @@
 
 > Authors: Doran Kayoumi, Jérôme Arn, Quentin Saucy
 
+## Introduction 
+
+In this Laboratory we will experiment an infrastructure with HA Proxy with different configuration for the load balancing.  
+
 ## Task 1: Install the tools
 
 #### 1. Explain how the load balancer behaves when you open and refresh the URL http://192.168.42.42 in your browser. Add screenshots to complement your explanations. We expect that you take a deeper a look at session management.
@@ -463,3 +467,7 @@ HAProxy->>Browser: Response: application/json\n Set-Cookie NODESESSID=2
    > Note: If take a larger scale example, `source` could be great if it's used internally (e.g. to access an intranet) as every machine have there own IP address. On the other hand, if we try and access an external resource, all the machines in the network will most likely pass trough a NAT and will have the same IP hence they will always access the same server which could lead to an overload.
    
    In sight of these issues, we believe that `leastconn` is the best solution for this laboratory.
+
+## Conclusion 
+
+We have seen the difference between an application (NODESESSID) cookies and proxy cookie (SERVERID). Their purpose and their uses. Moreover we have learn that some load balancing strategy have the same behavior in some conditions. But the most important  thing we have learn is when some strategy bring nothing.
