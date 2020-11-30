@@ -4,7 +4,7 @@
 
 ## Introduction 
 
-In this Laboratory we will experiment an infrastructure with HA Proxy with different configuration for the load balancing.  
+In this laboratory, we will have fun and discover how HAProxy works in a simple HTTP infrastructure using different load balancing policies.
 
 ## Task 1: Install the tools
 
@@ -470,4 +470,4 @@ HAProxy->>Browser: Response: application/json\n Set-Cookie NODESESSID=2
 
 ## Conclusion 
 
-We have seen the difference between an application (NODESESSID) cookies and proxy cookie (SERVERID). Their purpose and their uses. Moreover we have learn that some load balancing strategy have the same behavior in some conditions. But the most important  thing we have learn is when some strategy bring nothing.
+After testing different load balancing policies, we now have a better understanding on how a reverse proxy works. We've also learnt (and understood) the differences between the types of cookies used for a sticky session (i.e. NODESESSIONID & SERVERID). Finally, we've discovered that certain policies can have the same behaviour under certain conditions (e.g. leastconn with short sessions protocols).
