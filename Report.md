@@ -413,7 +413,7 @@ HAProxy->>Browser: Response: application/json\n Set-Cookie NODESESSID=2
    | ------------------------------------------- | ------------------------------------------- |
    | ![](doc/task5_1-leastconn_freq_browser.png) | ![](doc/task5_1-leastconn_sreq_browser.png) |
 
-   Testing with JMeter, we can see that the requests are almost evenly split between both nodes but not exactly, we don't know the reason. You know my brother, it's like we can decide which one is the best.
+   Testing with JMeter, we can see that the requests are almost evenly split between both nodes but not exactly, we're not exactly sure why. We suspect that it's most likely due to the fact the `leastconn` is better suited when long sessions are expected (e.g. ldap, SQL, etc...)
 
    ![](doc/task5_1-leastconn_jemeter1.png)
 
@@ -424,7 +424,7 @@ HAProxy->>Browser: Response: application/json\n Set-Cookie NODESESSID=2
    server s2 ${WEBAPP_2_IP}:3000 weight 1 check
    ```
 
-   Even with more weight on S1, the requests are almost evenly split between both nodes. A disadvantage for `leastconn` in case of unequal server. 
+   Even with more weight on S1, the requests are almost evenly split between both nodes.
 
    ![](doc/task5_1-leastconn_jemeter2.png)
 
