@@ -413,7 +413,7 @@ HAProxy->>Browser: Response: application/json\n Set-Cookie NODESESSID=2
    | ------------------------------------------- | ------------------------------------------- |
    | ![](doc/task5_1-leastconn_freq_browser.png) | ![](doc/task5_1-leastconn_sreq_browser.png) |
 
-   Testing with JMeter, we can see that the requests are almost evenly split between both nodes. There are slightly more requests sent to S1 which means that it processed requests faster than S2. 
+   Testing with JMeter, we can see that the requests are almost evenly split between both nodes but not exactly, we don't know the reason. You know my brother, it's like we can decide which one is the best.
 
    ![](doc/task5_1-leastconn_jemeter1.png)
 
@@ -424,7 +424,7 @@ HAProxy->>Browser: Response: application/json\n Set-Cookie NODESESSID=2
    server s2 ${WEBAPP_2_IP}:3000 weight 1 check
    ```
 
-   Running JMeter again we can see that this time it's S2 that has slightly more requests. It's most likely due to the fact that S1 has a greater weight so it had more simultaneous connections than S2 :
+   Even with more weight on S1, the requests are almost evenly split between both nodes. A disadvantage for `leastconn` in case of unequal server. 
 
    ![](doc/task5_1-leastconn_jemeter2.png)
 
@@ -440,7 +440,7 @@ HAProxy->>Browser: Response: application/json\n Set-Cookie NODESESSID=2
    server s2 ${WEBAPP_2_IP}:3000 check cookie s2
    ```
 
-   And after running more JMeter tests, we can see that the `sticky session` isn't affected by the `leastconn` policy similarly to what happened with the `round robin` policy in previous tasks.
+   And after running more JMeter tests, we can see that the `sticky session` isn't affected by the `leastconn` policy similarly to what happened with the `round robin` policy in previous tasks. This time, we can see that the requests are splited between both nodes because each thread has an cookie for himself.
 
    ![](doc/task5_1-leastconn_jemeter3.png)
 
